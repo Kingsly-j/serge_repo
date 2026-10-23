@@ -17,3 +17,4 @@ export async function initializeFirebaseAnalytics(): Promise<Analytics | null> {
   if (typeof window === "undefined" || !(await isSupported())) return null;
   return getAnalytics(firebaseApp);
 }
+

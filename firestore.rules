@@ -1,0 +1,25 @@
+﻿rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSiteAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'support@anthonymobilehomes.com';
+    }
+
+    match /collections/{documentId} {
+      allow read: if true;
+      allow create, update, delete: if isSiteAdmin();
+    }
+
+    match /reviews/{documentId} {
+      allow read: if true;
+      allow create, update, delete: if isSiteAdmin();
+    }
+
+    // Traffic events are written only by the trusted server Admin SDK.
+    // Firebase Admin SDK requests bypass Firestore Security Rules.
+    match /trafficEvents/{documentId} {
+      allow read, write: if false;
+    }
+  }
+}
