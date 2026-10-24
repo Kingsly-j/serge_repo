@@ -66,7 +66,7 @@ export function CustomerAccount() {
   }, [user, loadChats]);
 
   useEffect(() => {
-    if (!user || !requestedCollectionId) return;
+    if (!user || user.email?.toLowerCase() === ADMIN_EMAIL || !requestedCollectionId) return;
     const home = requestedCollectionId === "general"
       ? { id: "general", name: "General enquiry", price: "" }
       : collections.find((item) => item.id === requestedCollectionId);
@@ -168,7 +168,13 @@ export function CustomerAccount() {
 
   const paymentLabel = useMemo(() => selectedChat?.downPayment != null ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(selectedChat.downPayment) : "", [selectedChat]);
 
-  if (user?.email?.toLowerCase() === ADMIN_EMAIL) return <main className="account-page"><header className="account-header"><Link href="/" className="wordmark"><span className="brand-house"><HouseIcon size={18}/></span><span>ANTHONY <b>MOBILE HOMES</b></span></Link><button type="button" className="account-signout" onClick={() => void signOut(firebaseAuth)}>Sign out</button></header><section className="account-admin-redirect"><p className="eyebrow">ADMIN ACCOUNT</p><h1>Open your dashboard</h1><p>Use the admin workspace to reply to customers and manage their down payments.</p><Link className="account-primary-link" href="/admin">Go to admin dashboard <ArrowUpRight size={16}/></Link></section><SiteFooter/></main>;
+  async function switchToCustomerAccount() {
+    setNotice("");
+    setSelectedId("");
+    await signOut(firebaseAuth);
+  }
+
+  if (user?.email?.toLowerCase() === ADMIN_EMAIL) return <main className="account-page"><header className="account-header"><Link href="/" className="wordmark"><span className="brand-house"><HouseIcon size={18}/></span><span>ANTHONY <b>MOBILE HOMES</b></span></Link><button type="button" className="account-signout" onClick={() => void signOut(firebaseAuth)}>Sign out</button></header><section className="account-admin-redirect"><p className="eyebrow">ADMIN ACCOUNT</p><h1>Open your dashboard</h1><p>Use the admin workspace to reply to customers and manage their down payments.</p><Link className="account-primary-link" href="/admin">Go to admin dashboard <ArrowUpRight size={16}/></Link>{requestedCollectionId && <><p>This enquiry needs a customer account. Switch accounts to continue; your selected home will stay here.</p><button className="account-primary-link" type="button" onClick={() => void switchToCustomerAccount()}>Switch to customer sign in</button></>}</section><SiteFooter/></main>;
 
   return <main className="account-page">
     <header className="account-header"><Link href="/" className="wordmark"><span className="brand-house"><HouseIcon size={18}/></span><span>ANTHONY <b>MOBILE HOMES</b></span></Link><nav><Link href="/collections">Explore homes</Link>{user ? <button type="button" className="account-signout" onClick={() => void signOut(firebaseAuth)}>Sign out</button> : <Link href="/account">Sign in</Link>}</nav></header>
