@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithRedirect, signOut, updateProfile, type User } from "firebase/auth";
+import { browserLocalPersistence, createUserWithEmailAndPassword, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, setPersistence, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, updateProfile, type User } from "firebase/auth";
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
 import { ArrowLeft, ArrowUpRight, Home as HouseIcon, Plus } from "@/components/icons";
 import { firebaseAuth } from "@/lib/firebase-auth-client";
@@ -46,6 +46,16 @@ export function CustomerAccount() {
   const [paymentChannel, setPaymentChannel] = useState<"whatsapp" | "email">("whatsapp");
   const selectedChat = chats.find((chat) => chat.id === selectedId) || null;
 
+  const goToCustomerChat = useCallback(() => {
+    if (firebaseAuth.currentUser?.email?.toLowerCase() === ADMIN_EMAIL) {
+      router.replace("/admin");
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const collectionId = requestedCollectionId || params.get("collectionId");
+    router.replace(collectionId ? `/account?collectionId=${encodeURIComponent(collectionId)}` : "/account");
+  }, [requestedCollectionId, router]);
+
   useEffect(() => onAuthStateChanged(firebaseAuth, (nextUser) => { setUser(nextUser); setAuthReady(true); }), []);
   useEffect(() => {
     void fetch("/api/collections", { cache: "no-store" }).then((response) => response.ok ? response.json() : starterCollections).then((data: Collection[]) => setCollections(data)).catch(() => undefined);
@@ -73,24 +83,53 @@ export function CustomerAccount() {
   useEffect(() => {
     let cancelled = false;
     void getRedirectResult(firebaseAuth).then(async (result) => {
-      if (!result || cancelled) return;
-      if (result.user.email?.toLowerCase() === ADMIN_EMAIL) {
+      if (cancelled) return;
+      // Auth state can settle just after getRedirectResult resolves. Prefer the
+      // credential result, then the restored Firebase session.
+      const returnedUser = result?.user || firebaseAuth.currentUser;
+      if (!returnedUser) return;
+      if (returnedUser.email?.toLowerCase() === ADMIN_EMAIL) {
         router.replace("/admin");
         return;
       }
-      setUser(result.user);
-      try {
-        await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: result.user.displayName || "" }) });
-      } catch (error) {
-        if (!cancelled) setNotice(error instanceof Error ? error.message : "Your Google account is signed in, but its customer profile could not be saved.");
+      setUser(returnedUser);
+      if (result) {
+        try {
+          await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: returnedUser.displayName || "" }) });
+        } catch (error) {
+          if (!cancelled) setNotice(error instanceof Error ? error.message : "Your Google account is signed in, but its customer profile could not be saved.");
+        }
       }
+      if (!cancelled) goToCustomerChat();
     }).catch((error) => {
       if (!cancelled) setNotice(googleSignInError(error));
     }).finally(() => {
-      if (!cancelled) setRedirectHandled(true);
+      if (!cancelled) {
+        // onAuthStateChanged is the source of truth for a redirect callback.
+        // Wait briefly for Firebase persistence to restore before revealing
+        // the signed-out form, which otherwise looks like a failed login.
+        const restoredUser = firebaseAuth.currentUser;
+        if (restoredUser) {
+          setUser(restoredUser);
+          setRedirectHandled(true);
+          return;
+        }
+        const timeout = window.setTimeout(() => {
+          if (!cancelled) setRedirectHandled(true);
+        }, 1200);
+        const unsubscribe = onAuthStateChanged(firebaseAuth, (nextUser) => {
+          if (!nextUser) return;
+          if (!cancelled) {
+            setUser(nextUser);
+            setRedirectHandled(true);
+          }
+          window.clearTimeout(timeout);
+          unsubscribe();
+        });
+      }
     });
     return () => { cancelled = true; };
-  }, [api, router]);
+  }, [api, goToCustomerChat, router]);
 
   useEffect(() => {
     if (!user) { setChats([]); setMessages([]); setSelectedId(""); return; }
@@ -149,7 +188,7 @@ export function CustomerAccount() {
       } else credential = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
       setUser(credential.user); setPassword("");
       await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: credential.user.displayName || name.trim() }) });
-      setNotice("You");
+      goToCustomerChat();
     } catch (error) { setNotice(error instanceof Error ? error.message : "Sign-in failed. Check your details and try again."); }
     finally { setBusy(false); }
   }
@@ -157,7 +196,24 @@ export function CustomerAccount() {
   async function googleSignIn() {
     setBusy(true); setNotice("");
     try {
-      await signInWithRedirect(firebaseAuth, new GoogleAuthProvider());
+      await setPersistence(firebaseAuth, browserLocalPersistence);
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      try {
+        const credential = await signInWithPopup(firebaseAuth, provider);
+        if (credential.user.email?.toLowerCase() === ADMIN_EMAIL) {
+          router.replace("/admin");
+          return;
+        }
+        setUser(credential.user);
+        await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: credential.user.displayName || "" }) });
+        setRedirectHandled(true);
+        goToCustomerChat();
+      } catch (popupError) {
+        const code = typeof popupError === "object" && popupError && "code" in popupError ? String(popupError.code) : "";
+        if (code !== "auth/popup-blocked" && code !== "auth/operation-not-supported-in-this-environment") throw popupError;
+        await signInWithRedirect(firebaseAuth, provider);
+      }
     } catch (error) { setNotice(googleSignInError(error)); }
     finally { setBusy(false); }
   }
