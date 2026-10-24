@@ -66,3 +66,43 @@
 @media(max-width:760px){.account-header{padding:12px 14px}.account-header .wordmark{font-size:12px}.account-header .wordmark b{font-size:7px}.account-header nav{gap:12px;font-size:8px}.account-auth-layout{grid-template-columns:1fr;gap:24px;min-height:0;padding:32px 16px 35px;background:linear-gradient(180deg,#0b2946 0,#123b5f 34%,#f4f7fb 34%)}.account-auth-story{padding:5px 3px 0}.account-auth-story h1{font-size:48px}.account-auth-story>p:not(.eyebrow){font-size:10px}.account-auth-card{padding:21px}.account-admin-redirect{min-height:60vh;padding:30px 20px}.customer-messenger{position:relative;grid-template-columns:1fr;min-height:calc(100dvh - 58px);max-height:calc(100dvh - 58px)}.customer-messenger.has-chat .customer-chat-sidebar{display:none}.customer-chat-sidebar{min-height:0}.customer-account-heading{padding:17px 15px 12px}.customer-conversation-list{padding-bottom:15px}.customer-chat-main{min-height:calc(100dvh - 58px)}.customer-chat-header{min-height:69px;padding:10px 12px;gap:8px}.chat-home-cover{width:43px;height:42px}.chat-home-title h2{font-size:14px}.chat-listing-link{font-size:7px}.chat-back-mobile{display:flex;align-items:center;gap:5px;position:absolute;left:12px;top:12px;transform:translateY(-100%);padding:5px 7px;border:1px solid #dce6ef;background:white;color:#426681;font-size:8px}.customer-chat-header:has(.chat-back-mobile){margin-top:22px}.chat-intro-note{width:calc(100% - 22px);margin-top:9px;padding:8px}.chat-intro-note p{font-size:7px}.chat-message-list{padding:12px 11px}.chat-bubble{max-width:88%;padding:9px 10px}.chat-bubble p{font-size:9px}.customer-message-form{padding:9px;gap:6px}.customer-message-form textarea{padding:9px;font-size:8px}.customer-message-form button{min-height:38px;padding:0 10px;font-size:8px}.downpayment-card{align-items:flex-start;flex-direction:column;margin:5px 9px 0;padding:10px;gap:9px}.downpayment-actions,.downpayment-button{width:100%}.downpayment-button{justify-content:center}.downpayment-choices{width:100%}.chat-welcome-state{padding:30px 22px}.admin-chat-workspace{grid-template-columns:1fr;min-height:calc(100dvh - 235px);max-height:calc(100dvh - 210px)}.admin-chat-page:has(.admin-chat-list-item.is-active) .admin-chat-list{display:none}.admin-chat-thread-header{padding:10px}.admin-downpayment-form{gap:5px;margin:7px 7px 0;padding:7px}.admin-downpayment-form>div>small{line-height:1.3}.admin-downpayment-form>label{width:73px}.admin-downpayment-form>button{padding:8px 6px;font-size:7px}.admin-chat-composer{padding:7px;gap:6px}.admin-chat-composer textarea{font-size:8px}.admin-chat-composer button{padding:0 7px;font-size:8px}.admin-chat-thread-header p{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.admin-chat-live{font-size:7px}.admin-dashboard-mobile-nav{grid-template-columns:repeat(6,minmax(0,1fr))}.admin-dashboard-mobile-nav button{font-size:6.5px}.admin-dashboard-mobile-nav button>span{font-size:15px}}
 .whatsapp-float svg{fill:none;stroke:currentColor}
 .account-auth-loading{display:grid;flex:1;min-height:55vh;place-items:center;color:#58748c;font:500 18px Georgia,serif}
+
+/* Customer chat: keep the composer visible while the conversation scrolls. */
+.customer-messenger{height:calc(100dvh - 69px);min-height:520px;max-height:calc(100dvh - 69px);overflow:hidden}
+.customer-chat-main{height:100%;min-height:0;overflow:hidden}
+.customer-chat-header{flex:none}
+.chat-intro-note{flex:none;width:min(92%,760px);margin-top:12px}
+.chat-message-list{min-height:0;overscroll-behavior:contain}
+.chat-bubble>span{font-size:9px}
+.chat-bubble p{font-size:14px;line-height:1.6}
+.chat-bubble time{font-size:10px}
+.customer-message-form{flex:none;display:grid;gap:7px;padding:12px 18px max(12px,env(safe-area-inset-bottom));box-shadow:0 -8px 24px #1739560b}
+.customer-message-form>label{color:#58748c;font-size:12px;font-weight:700}
+.customer-message-compose{display:flex;align-items:end;gap:10px}
+.customer-message-compose textarea{min-height:50px;max-height:130px;padding:13px 15px;border-radius:7px;background:#fbfdff;font:400 15px/1.5 Arial,sans-serif}
+.customer-message-compose textarea::placeholder{color:#91a0ad}
+.customer-message-compose button{min-height:50px;padding:0 18px;border-radius:7px;font-size:13px;white-space:nowrap}
+.chat-welcome-state{align-items:center;text-align:center;background:radial-gradient(ellipse at 50% 42%,#f3f8fc 0,white 64%)}
+.chat-welcome-state>p:not(.eyebrow){font-size:15px}
+.chat-welcome-state>.eyebrow{font-size:10px;letter-spacing:.14em}
+.chat-start-button{display:inline-flex;align-items:center;gap:9px;margin-top:16px;padding:14px 20px;border:0;border-radius:4px;background:#0c426b;color:#fff;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 8px 22px #0c426b22}
+.chat-browse-link{margin-top:16px;color:#39749e;font-size:13px;font-weight:700}
+@media(max-width:760px){
+  .customer-messenger{height:calc(100dvh - 58px);min-height:0;max-height:calc(100dvh - 58px)}
+  .customer-messenger.has-chat .customer-chat-main{height:100%;min-height:0;overflow:hidden}
+  .customer-chat-header{min-height:70px}
+  .chat-intro-note{width:calc(100% - 20px);margin:8px 10px 0;padding:8px 10px}
+  .chat-intro-note p{font-size:11px}
+  .chat-message-list{padding:12px 12px;gap:10px}
+  .chat-bubble{max-width:88%;padding:10px 12px;border-radius:10px}
+  .chat-bubble p{font-size:14px}
+  .customer-message-form{gap:6px;padding:9px 10px max(10px,env(safe-area-inset-bottom))}
+  .customer-message-form>label{font-size:11px}
+  .customer-message-compose{gap:7px}
+  .customer-message-compose textarea{min-height:48px;padding:10px 11px;font-size:16px}
+  .customer-message-compose button{min-height:48px;padding:0 12px;font-size:12px}
+  .chat-welcome-state{padding:28px 20px}
+  .chat-welcome-state h2{font-size:34px}
+  .chat-welcome-state>p:not(.eyebrow){font-size:14px}
+  .chat-start-button{min-height:48px}
+}

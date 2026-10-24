@@ -53,9 +53,9 @@ export function AdminPanel({ onClose, onSaved, onSignOut, collections, reviews }
     const token = await getIdToken(user);
     const response = await fetch(path, { ...init, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...init.headers } });
     const body = response.status === 204 ? "" : await response.text();
-    let result: Record<string, unknown> | null = null;
+    let result: any = null;
     if (body) {
-      try { result = JSON.parse(body) as Record<string, unknown>; }
+      try { result = JSON.parse(body); }
       catch {
         const contentType = response.headers.get("content-type") || "unknown content type";
         throw new Error(`Request to ${path} returned an invalid response (HTTP ${response.status}, ${contentType}).`);
