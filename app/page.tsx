@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, Home as HouseIcon, Menu, X } from "@/components/icons";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, Home as HouseIcon, Menu, WhatsAppIcon, X } from "@/components/icons";
 import { starterCollections, type Collection } from "@/lib/catalog";
 import { CollectionDetail } from "@/components/collection-detail";
 import { ReviewsSection } from "@/components/reviews-section";
@@ -133,7 +133,7 @@ export default function Home() {
       </>}
 
       <SiteFooter />
-      <Link className="whatsapp-float" href="/account" aria-label="Chat with Anthony Mobile Homes"><span>Chat with our team</span></Link>
+      <a className="whatsapp-float" href="https://wa.me/17017139763?text=Hello%20Anthony%20Mobile%20Homes%2C%20I%27m%20interested%20in%20your%20homes." target="_blank" rel="noreferrer" aria-label="Inquire on WhatsApp at +1 701 713 9763"><WhatsAppIcon/><span>WhatsApp inquiry</span></a>
     </main>
   );
 }

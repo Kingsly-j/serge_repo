@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Home as HouseIcon } from "@/components/icons";
+import { ArrowUpRight, Home as HouseIcon, WhatsAppIcon } from "@/components/icons";
 import { CollectionDetail } from "@/components/collection-detail";
 import { starterCollections, type Collection } from "@/lib/catalog";
 import { SiteFooter } from "@/components/site-footer";
@@ -24,6 +24,6 @@ export function CollectionRouteClient({ id }: { id: string }) {
     <header className="site-header"><Link href="/" className="wordmark"><span className="brand-house"><HouseIcon size={18} /></span><span>ANTHONY <b>MOBILE HOMES</b></span></Link><nav className="desktop-nav"><Link href="/collections">Home collections</Link><a href="tel:+14702194472">Talk with our team</a><Link href="/account">My account</Link></nav><a className="header-cta" href="tel:+14702194472">Call (470) 219-4472 <ArrowUpRight size={15} /></a></header>
     {collection ? <CollectionDetail collection={collection} onBack={() => { window.location.href = "/collections"; }} /> : loaded ? <div className="catalog-loading"><p>We couldn?t find that home collection.</p><Link href="/collections">Browse all home collections</Link></div> : <div className="catalog-loading"><span className="catalog-loader" /><p>Opening the home collection?</p></div>}
     <SiteFooter />
-    <Link className="whatsapp-float" href="/account" aria-label="Chat with Anthony Mobile Homes"><span>Chat with our team</span></Link>
+    <a className="whatsapp-float" href="https://wa.me/17017139763?text=Hello%20Anthony%20Mobile%20Homes%2C%20I%27m%20interested%20in%20your%20homes." target="_blank" rel="noreferrer" aria-label="Inquire on WhatsApp at +1 701 713 9763"><WhatsAppIcon/><span>WhatsApp inquiry</span></a>
   </main>;
 }

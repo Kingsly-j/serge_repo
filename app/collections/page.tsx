@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Home as HouseIcon } from "@/components/icons";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Home as HouseIcon, WhatsAppIcon } from "@/components/icons";
 import { starterCollections, type Collection } from "@/lib/catalog";
 import { PurchaseButton } from "@/components/purchase-button";
 import { SiteFooter } from "@/components/site-footer";
@@ -49,6 +49,6 @@ export default function CollectionsPage() {
     </section>
     <section className="catalog-contact"><div><p className="eyebrow light"><span className="eyebrow-line" />Personal guidance from first look to move-in</p><h2>Let’s find a home<br /><em>that feels right.</em></h2></div><a href="tel:+14702194472">Talk with Anthony <ArrowUpRight size={17} /></a></section>
     <SiteFooter />
-    <Link className="whatsapp-float" href="/account" aria-label="Chat with Anthony Mobile Homes"><span>Chat with our team</span></Link>
+    <a className="whatsapp-float" href="https://wa.me/17017139763?text=Hello%20Anthony%20Mobile%20Homes%2C%20I%27m%20interested%20in%20your%20homes." target="_blank" rel="noreferrer" aria-label="Inquire on WhatsApp at +1 701 713 9763"><WhatsAppIcon/><span>WhatsApp inquiry</span></a>
   </main>;
 }
