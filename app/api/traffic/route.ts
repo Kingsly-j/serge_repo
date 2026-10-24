@@ -34,12 +34,16 @@ export async function GET(request: Request) {
   const now = Date.now();
   const start = now - durationMs;
   try {
+    // Ordering on createdAt alone uses Firestore's automatic single-field
+    // index. Combining the range filter with orderBy can require a deployed
+    // composite index, which made the dashboard return 500 on fresh projects.
     const snapshot = await db.collection("trafficEvents")
-      .where("createdAt", ">=", Timestamp.fromMillis(start))
       .orderBy("createdAt", "desc")
       .limit(10000)
       .get();
-    const events = snapshot.docs.map((entry) => entry.data());
+    const events = snapshot.docs
+      .map((entry) => entry.data())
+      .filter((event) => event.createdAt instanceof Timestamp && event.createdAt.toMillis() >= start);
     const visitors = new Set<string>();
     const pages = new Map<string, number>();
     const locations = new Map<string, number>();
@@ -83,7 +87,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Could not read site traffic", error);
-    return NextResponse.json({ error: "Traffic data could not be loaded." }, { status: 500 });
+    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    const message = error instanceof Error ? error.message : "Unknown Firestore error.";
+    return NextResponse.json({ error: `Traffic data could not be loaded${code ? ` (${code})` : ""}: ${message.slice(0, 240)}` }, { status: 500 });
   }
 }
 
