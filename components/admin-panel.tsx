@@ -52,8 +52,16 @@ export function AdminPanel({ onClose, onSaved, onSignOut, collections, reviews }
     if (!user) throw new Error("Your admin session has expired. Sign in again.");
     const token = await getIdToken(user);
     const response = await fetch(path, { ...init, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...init.headers } });
-    const result = response.status === 204 ? null : await response.json();
-    if (!response.ok) throw new Error(result?.error || "Could not complete this request.");
+    const body = response.status === 204 ? "" : await response.text();
+    let result: Record<string, unknown> | null = null;
+    if (body) {
+      try { result = JSON.parse(body) as Record<string, unknown>; }
+      catch {
+        const contentType = response.headers.get("content-type") || "unknown content type";
+        throw new Error(`Request to ${path} returned an invalid response (HTTP ${response.status}, ${contentType}).`);
+      }
+    }
+    if (!response.ok) throw new Error(typeof result?.error === "string" ? result.error : `Request to ${path} failed (HTTP ${response.status}).`);
     return result;
   }, []);
 
