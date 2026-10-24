@@ -24,16 +24,21 @@ async function requireAdmin(request: Request) {
   }
 }
 
+function safeError(error: unknown) {
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+  const message = error instanceof Error ? error.message : "Unknown Firebase Admin error.";
+  return `${code ? ` (${code})` : ""}: ${message.slice(0, 240)}`;
+}
+
 export async function GET(request: Request) {
   if (!(await requireAdmin(request))) return NextResponse.json({ error: "Admin sign-in required." }, { status: 401 });
-  const db = getAdminFirestore();
-  if (!db) return NextResponse.json({ error: "Firebase Admin credentials are not configured on the server." }, { status: 503 });
-
   const range = new URL(request.url).searchParams.get("range") || "30d";
   const durationMs = range === "24h" ? 24 * 60 * 60 * 1000 : range === "7d" ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
   const now = Date.now();
   const start = now - durationMs;
   try {
+    const db = getAdminFirestore();
+    if (!db) return NextResponse.json({ error: "Firebase Admin credentials are not configured on the deployment. Add FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY to the Vercel Production environment, then redeploy." }, { status: 503 });
     // Ordering on createdAt alone uses Firestore's automatic single-field
     // index. Combining the range filter with orderBy can require a deployed
     // composite index, which made the dashboard return 500 on fresh projects.
@@ -87,9 +92,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Could not read site traffic", error);
-    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-    const message = error instanceof Error ? error.message : "Unknown Firestore error.";
-    return NextResponse.json({ error: `Traffic data could not be loaded${code ? ` (${code})` : ""}: ${message.slice(0, 240)}` }, { status: 500 });
+    return NextResponse.json({ error: `Firebase Admin could not read traffic${safeError(error)}` }, { status: 500 });
   }
 }
 
