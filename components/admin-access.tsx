@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
@@ -11,6 +11,7 @@ const ADMIN_EMAIL = "support@anthonymobilehomes.com";
 
 export function AdminAccess() {
   const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -19,7 +20,12 @@ export function AdminAccess() {
   const [collections, setCollections] = useState<Collection[]>(starterCollections);
   const [reviews, setReviews] = useState<CustomerReview[]>(starterReviews);
 
-  useEffect(() => onAuthStateChanged(firebaseAuth, setUser), []);
+  useEffect(() => onAuthStateChanged(firebaseAuth, (nextUser) => { setUser(nextUser); setAuthReady(true); }), []);
+  useEffect(() => {
+    if (!authReady || window.location.pathname !== "/admin") return;
+    if (user) { setLoginOpen(false); setAdminOpen(true); }
+    else setLoginOpen(true);
+  }, [authReady, user]);
 
   useEffect(() => {
     let typed = "";
@@ -88,12 +94,11 @@ export function AdminAccess() {
   return <>
     {loginOpen && <div className="admin-login-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLoginOpen(false); }}>
       <form className="admin-login-box" onSubmit={login} aria-labelledby="admin-login-title">
-        <button className="admin-login-close" type="button" onClick={() => setLoginOpen(false)} aria-label="Close admin sign in">Ãƒâ€”</button>
-        <p className="eyebrow"><span className="eyebrow-line" />Private access</p><h2 id="admin-login-title">Admin sign in</h2>
+        <button className="admin-login-close" type="button" onClick={() => setLoginOpen(false)} aria-label="Close admin sign in">X</button><p className="eyebrow"><span className="eyebrow-line" />Private access</p><h2 id="admin-login-title">Admin sign in</h2>
         <label>Email<input type="email" value={ADMIN_EMAIL} readOnly /></label>
         <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus required /></label>
         {error && <p className="admin-login-error" role="alert">{error}</p>}
-        <button type="submit" disabled={busy}>{busy ? "Signing inÃ¢â‚¬Â¦" : "Sign in"}</button>
+        <button type="submit" disabled={busy}>{busy ? "Signing in" : "Sign in"}</button>
       </form>
     </div>}
     {adminOpen && user && <AdminPanel collections={collections} reviews={reviews} onClose={() => setAdminOpen(false)} onSaved={refreshCatalog} onSignOut={logout} />}

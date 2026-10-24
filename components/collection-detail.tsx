@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowUpRight } from "@/components/icons";
+import Link from "next/link";
 import type { Collection } from "@/lib/catalog";
 import { PurchaseButton } from "@/components/purchase-button";
 
@@ -12,6 +13,6 @@ export function CollectionDetail({ collection, onBack }: { collection: Collectio
     </div>
     <div className="rooms-heading"><div><p className="eyebrow"><span className="eyebrow-line" /> A closer look</p><h2>Spaces to make your own</h2></div><span>{collection.rooms.length} considered spaces</span></div>
     <div className="room-grid">{collection.rooms.map((room, i) => <article className="room-card" key={room.id}><div className="room-image" style={{ backgroundImage: `url("${room.imageUrl}")` }}><span>0{i + 1}</span></div><div className="room-info"><div><h3>{room.name}</h3><p>{room.description}</p></div><ArrowUpRight size={18} /></div></article>)}</div>
-    <div className="detail-contact"><p>Could this be your next home?</p><a href="mailto:support@anthonymobilehomes.com">Let's talk <ArrowUpRight size={16} /></a><a href="tel:+17017139763">Call (701) 713-9763 <ArrowUpRight size={16} /></a><PurchaseButton collection={collection} /></div>
+    <div className="detail-contact"><p>Could this be your next home?</p><Link href="/account">Message our team <ArrowUpRight size={16} /></Link><a href="tel:+14702194472">Call (470) 219-4472 <ArrowUpRight size={16} /></a><PurchaseButton collection={collection} /></div>
   </section>;
 }

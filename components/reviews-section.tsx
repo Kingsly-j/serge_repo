@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "@/components/icons";
 import type { CustomerReview } from "@/lib/reviews";
 
@@ -44,6 +45,6 @@ export function ReviewsSection({ reviews }: { reviews: CustomerReview[] }) {
           </article>)}
         </div>)}
       </div>
-    </div> : <div className="reviews-empty"><span className="review-stars">★★★★★</span><h3>Customer stories are on the way.</h3><p>Our team is ready to help you find the right home and make your own experience worth sharing.</p><a href="https://wa.me/17017139763?text=Hello%20Anthony%20Mobile%20Homes%2C%20I%27d%20like%20to%20learn%20more%20about%20your%20homes." target="_blank" rel="noreferrer">Talk with our team</a></div>}
+    </div> : <div className="reviews-empty"><span className="review-stars">★★★★★</span><h3>Customer stories are on the way.</h3><p>Our team is ready to help you find the right home and make your own experience worth sharing.</p><Link href="/account">Chat with our team</Link></div>}
   </section>;
 }

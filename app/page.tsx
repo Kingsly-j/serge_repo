@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -56,9 +56,9 @@ export default function Home() {
   function requestCall(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const subject = encodeURIComponent("Call request - Anthony Mobile Homes");
-    const body = encodeURIComponent(`Name: ${form.get("name")}\nEmail: ${form.get("email")}\nPhone: ${form.get("phone")}\nPreferred day: ${form.get("day")}\nPreferred time: ${form.get("time")}\nMessage: ${form.get("message") || "No additional details"}`);
-    window.location.href = `mailto:support@anthonymobilehomes.com?subject=${subject}&body=${body}`;
+    const body = `Hello, I’d like to request a call.\nName: ${form.get("name")}\nEmail: ${form.get("email")}\nPhone: ${form.get("phone")}\nPreferred day: ${form.get("day")}\nPreferred time: ${form.get("time")}\nMessage: ${form.get("message") || "No additional details"}`;
+    try { window.sessionStorage.setItem("anthony-contact-draft", body); } catch { /* The customer can still start a general chat without the draft. */ }
+    window.location.href = "/account?collectionId=general";
   }
 
   useEffect(() => {
@@ -88,11 +88,11 @@ export default function Home() {
       <div className="announcement">NEW &amp; PRE-OWNED HOMES <span>•</span> FINANCING OPTIONS <span>•</span> HERE TO HELP</div>
       <header className="site-header">
         <a href="#home" className="wordmark" onClick={() => setSelected(null)}><span className="brand-house"><HouseIcon size={18} /></span><span>ANTHONY <b>MOBILE HOMES</b></span></a>
-        <nav className="desktop-nav"><Link href="/collections">Explore homes</Link><a href="#process">How it works</a><a href="#about">About us</a></nav>
-        <a className="header-cta" href="tel:+17017139763">Call (701) 713-9763 <ArrowUpRight size={15} /></a>
+        <nav className="desktop-nav"><Link href="/collections">Explore homes</Link><a href="#process">How it works</a><a href="#about">About us</a><Link href="/account">My account</Link></nav>
+        <a className="header-cta" href="tel:+14702194472">Call (470) 219-4472 <ArrowUpRight size={15} /></a>
         <button className="mobile-menu" aria-label="Toggle navigation" onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X /> : <Menu />}</button>
       </header>
-      {menuOpen && <nav className="mobile-nav"><Link onClick={() => setMenuOpen(false)} href="/collections">Explore homes</Link><a onClick={() => setMenuOpen(false)} href="#process">How it works</a><a onClick={() => setMenuOpen(false)} href="#about">About us</a><a href="tel:+17017139763">Call Anthony</a></nav>}
+      {menuOpen && <nav className="mobile-nav"><Link onClick={() => setMenuOpen(false)} href="/collections">Explore homes</Link><a onClick={() => setMenuOpen(false)} href="#process">How it works</a><a onClick={() => setMenuOpen(false)} href="#about">About us</a><Link onClick={() => setMenuOpen(false)} href="/account">My account</Link><a href="tel:+14702194472">Call Anthony</a></nav>}
 
       {selected ? <CollectionDetail collection={selected} onBack={() => setSelected(null)} /> : <>
         <section className="hero showcase-hero" id="home">
@@ -121,20 +121,19 @@ export default function Home() {
 
         <section className="buying-section" id="about" data-reveal>
           <div className="buying-photo" role="img" aria-label="Living room and kitchen inside a manufactured home" />
-          <div className="buying-copy"><p className="eyebrow"><span className="eyebrow-line" />A more welcoming way to buy</p><h2>Let’s make finding home <em>feel easier.</em></h2><p>Buying a home is a big step. We’re here to help you explore your options, understand the process, and find a home that works for your budget and your life.</p><ul><li><Check size={15} /> New and pre-owned homes</li><li><Check size={15} /> Financing options to discuss</li><li><Check size={15} /> Guidance from selection to move-in</li></ul><a className="blue-link" href="tel:+17017139763">Get to know your options <ArrowUpRight size={16} /></a></div>
+          <div className="buying-copy"><p className="eyebrow"><span className="eyebrow-line" />A more welcoming way to buy</p><h2>Let’s make finding home <em>feel easier.</em></h2><p>Buying a home is a big step. We’re here to help you explore your options, understand the process, and find a home that works for your budget and your life.</p><ul><li><Check size={15} /> New and pre-owned homes</li><li><Check size={15} /> Financing options to discuss</li><li><Check size={15} /> Guidance from selection to move-in</li></ul><a className="blue-link" href="tel:+14702194472">Get to know your options <ArrowUpRight size={16} /></a></div>
         </section>
 
         <section className="spaces-section" data-reveal><div className="spaces-heading"><div><p className="eyebrow"><span className="eyebrow-line" />Designed for everyday life</p><h2>Take a look inside</h2></div><div className="carousel-actions"><button aria-label="Scroll spaces left" onClick={() => scrollRail(spacesRail, -1)}><ArrowLeft size={17} /></button><button aria-label="Scroll spaces right" onClick={() => scrollRail(spacesRail, 1)}><ArrowRight size={17} /></button></div></div><div className="spaces-rail" ref={spacesRail}>{spaces.map((room, index) => <button className="space-tile" key={room.id} onClick={() => collections[0] && setSelected(collections[0])}><div style={{ backgroundImage: `url("${room.imageUrl}")` }}><span>0{index + 1}</span><ArrowUpRight size={18} /></div><h3>{room.name}</h3><p>{room.description}</p></button>)}</div></section>
 
-        <section className="process-section" id="process" data-reveal><div className="process-intro"><p className="eyebrow light"><span className="eyebrow-line" />From first look to move-in</p><h2>A home buying journey,<br /><em>made clearer.</em></h2><p>We’ll take it one step at a time and help you know what comes next.</p><a className="process-call" href="tel:+17017139763">Call +1 (701) 713-9763 <ArrowUpRight size={16} /></a></div><div className="process-steps">{buyingSteps.map((step) => <article className="process-step" key={step.number}><span>{step.number}</span><div><h3>{step.title}</h3><p>{step.copy}</p></div><ArrowUpRight size={16} /></article>)}</div></section>
+        <section className="process-section" id="process" data-reveal><div className="process-intro"><p className="eyebrow light"><span className="eyebrow-line" />From first look to move-in</p><h2>A home buying journey,<br /><em>made clearer.</em></h2><p>We’ll take it one step at a time and help you know what comes next.</p><a className="process-call" href="tel:+14702194472">Call +1 (470) 219-4472 <ArrowUpRight size={16} /></a></div><div className="process-steps">{buyingSteps.map((step) => <article className="process-step" key={step.number}><span>{step.number}</span><div><h3>{step.title}</h3><p>{step.copy}</p></div><ArrowUpRight size={16} /></article>)}</div></section>
 
-        <section className="contact-section" id="contact" data-reveal><div className="contact-pitch"><p className="eyebrow"><span className="eyebrow-line" />Your next chapter</p><h2>Ready to find<br /><em>your next home?</em></h2><p className="contact-intro">Tell us what you’re looking for. We’ll help you take the next step.</p><div className="contact-actions"><a className="contact-link" href="tel:+17017139763">+1 (701) 713-9763 <ArrowUpRight size={18} /></a><a className="contact-link" href="mailto:support@anthonymobilehomes.com">support@anthonymobilehomes.com <ArrowUpRight size={18} /></a></div></div><form className="call-form" onSubmit={requestCall}><p className="eyebrow"><span className="eyebrow-line" />Schedule a call</p><div className="call-form-row"><label>Your name<input name="name" required placeholder="Full name" /></label><label>Email<input name="email" type="email" required placeholder="you@example.com" /></label></div><div className="call-form-row"><label>Phone<input name="phone" type="tel" required placeholder="(701) 555-0123" /></label><label>Preferred day<input name="day" type="date" required /></label></div><label>Preferred time<select name="time" required defaultValue=""><option value="" disabled>Select a time</option><option>Morning</option><option>Afternoon</option><option>Evening</option></select></label><label>What are you looking for?<textarea name="message" rows={2} placeholder="Share a little about the home you have in mind" /></label><button type="submit">Request a call <ArrowUpRight size={16} /></button></form></section>
+        <section className="contact-section" id="contact" data-reveal><div className="contact-pitch"><p className="eyebrow"><span className="eyebrow-line" />Your next chapter</p><h2>Ready to find<br /><em>your next home?</em></h2><p className="contact-intro">Tell us what you’re looking for. We’ll help you take the next step.</p><div className="contact-actions"><a className="contact-link" href="tel:+14702194472">+1 (470) 219-4472 <ArrowUpRight size={18} /></a><Link className="contact-link" href="/account">Message our team <ArrowUpRight size={18} /></Link></div></div><form className="call-form" onSubmit={requestCall}><p className="eyebrow"><span className="eyebrow-line" />Schedule a call</p><div className="call-form-row"><label>Your name<input name="name" required placeholder="Full name" /></label><label>Email<input name="email" type="email" required placeholder="you@example.com" /></label></div><div className="call-form-row"><label>Phone<input name="phone" type="tel" required placeholder="(701) 555-0123" /></label><label>Preferred day<input name="day" type="date" required /></label></div><label>Preferred time<select name="time" required defaultValue=""><option value="" disabled>Select a time</option><option>Morning</option><option>Afternoon</option><option>Evening</option></select></label><label>What are you looking for?<textarea name="message" rows={2} placeholder="Share a little about the home you have in mind" /></label><button type="submit">Request a call <ArrowUpRight size={16} /></button></form></section>
         <ReviewsSection reviews={reviews} />
       </>}
 
       <SiteFooter />
-      <a className="whatsapp-float" href="https://wa.me/17017139763?text=Hello%20Anthony%20Mobile%20Homes%2C%20I%27m%20interested%20in%20your%20home%20collections." target="_blank" rel="noreferrer" aria-label="Chat with Anthony Mobile Homes on WhatsApp"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.3A12.6 12.6 0 0 0 5.2 22.4L3.5 28.7l6.5-1.7A12.7 12.7 0 1 0 16 3.3Zm0 22.9c-1.9 0-3.8-.5-5.4-1.6l-.4-.2-3.8 1 1-3.7-.3-.4a10.1 10.1 0 1 1 8.9 4.9Zm5.6-7.6c-.3-.2-1.8-.9-2.1-1s-.5-.2-.7.2-.8 1-.9 1.2-.4.2-.7.1a8.3 8.3 0 0 1-2.5-1.5 9.3 9.3 0 0 1-1.7-2.1c-.2-.3 0-.5.1-.7l.5-.6.3-.5c.1-.2 0-.4 0-.6l-.9-2.1c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.8 1.2 3.2 1.4 3.4 2.4 3.7 5.8 5.1c.8.3 1.4.5 1.8.6.8.3 1.6.2 2.2.1.7-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4s-.3-.2-.6-.4Z"/></svg><span>Chat with us</span></a>
+      <Link className="whatsapp-float" href="/account" aria-label="Chat with Anthony Mobile Homes"><span>Chat with our team</span></Link>
     </main>
   );
 }
-

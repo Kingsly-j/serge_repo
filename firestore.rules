@@ -16,8 +16,23 @@ service cloud.firestore {
       allow create, update, delete: if isSiteAdmin();
     }
 
-    // Traffic events are written only by the trusted server Admin SDK.
-    // Firebase Admin SDK requests bypass Firestore Security Rules.
+    match /chats/{chatId} {
+      allow read: if isSiteAdmin()
+        || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSiteAdmin()
+          || (request.auth != null
+            && get(/databases/$(database)/documents/chats/$(chatId)).data.uid == request.auth.uid);
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /customers/{customerId} {
+      allow read, write: if false;
+    }
+
     match /trafficEvents/{documentId} {
       allow read, write: if false;
     }
