@@ -52,11 +52,26 @@ export function CustomerAccount() {
       return;
     }
     const params = new URLSearchParams(window.location.search);
+    const chatId = params.get("chat");
+    if (chatId) {
+      router.replace(`/account?chat=${encodeURIComponent(chatId)}`);
+      return;
+    }
     const collectionId = requestedCollectionId || params.get("collectionId");
     router.replace(collectionId ? `/account?collectionId=${encodeURIComponent(collectionId)}` : "/account");
   }, [requestedCollectionId, router]);
 
-  useEffect(() => onAuthStateChanged(firebaseAuth, (nextUser) => { setUser(nextUser); setAuthReady(true); }), []);
+  useEffect(() => onAuthStateChanged(firebaseAuth, (nextUser) => {
+    setUser(nextUser);
+    setAuthReady(true);
+    if (nextUser) {
+      // This also handles redirect sign-in completing after the initial
+      // callback timeout; always leave the signed-out form once Firebase has
+      // confirmed an authenticated session.
+      setRedirectHandled(true);
+      goToCustomerChat();
+    }
+  }), [goToCustomerChat]);
   useEffect(() => {
     void fetch("/api/collections", { cache: "no-store" }).then((response) => response.ok ? response.json() : starterCollections).then((data: Collection[]) => setCollections(data)).catch(() => undefined);
     const params = new URLSearchParams(window.location.search);
