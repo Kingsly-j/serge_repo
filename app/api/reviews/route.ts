@@ -3,6 +3,7 @@ import { collection, doc, getDocs, setDoc } from "firebase/firestore/lite";
 import { publicFirestore } from "@/lib/firebase-public";
 import { starterReviews, type CustomerReview } from "@/lib/reviews";
 import { validateReview } from "@/lib/review-validation";
+import { apiErrorResponse } from "@/lib/api-errors";
 
 type StoredReview = CustomerReview & { sortOrder?: number; createdAt?: string };
 
@@ -24,10 +25,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Omit<CustomerReview, "id">;
-  const invalid = validateReview(body);
-  if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
-  const ref = doc(collection(publicFirestore, "reviews"));
-  await setDoc(ref, { name: body.name.trim(), location: body.location?.trim() ?? "", quote: body.quote.trim(), rating: body.rating, createdAt: new Date().toISOString() });
-  return NextResponse.json({ id: ref.id }, { status: 201 });
+  try {
+    const body = (await request.json()) as Omit<CustomerReview, "id">;
+    const invalid = validateReview(body);
+    if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
+    const ref = doc(collection(publicFirestore, "reviews"));
+    await setDoc(ref, { name: body.name.trim(), location: body.location?.trim() ?? "", quote: body.quote.trim(), rating: body.rating, createdAt: new Date().toISOString() });
+    return NextResponse.json({ id: ref.id }, { status: 201 });
+  } catch (error) { return apiErrorResponse(error, "Creating customer review"); }
 }

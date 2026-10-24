@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { collection, doc, getDocs, setDoc, writeBatch } from "firebase/firestore/lite";
 import { publicFirestore } from "@/lib/firebase-public";
 import { starterCollections, type Collection } from "@/lib/catalog";
+import { apiErrorResponse } from "@/lib/api-errors";
 
 type StoredCollection = Collection & { deleted?: boolean; createdAt?: string };
 
@@ -31,12 +32,14 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Omit<Collection, "id">;
-  const invalid = validateCollection(body);
-  if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
-  const ref = doc(collection(publicFirestore, "collections"));
-  await setDoc(ref, { ...body, sortOrder: 0, createdAt: new Date().toISOString() });
-  return NextResponse.json({ id: ref.id }, { status: 201 });
+  try {
+    const body = (await request.json()) as Omit<Collection, "id">;
+    const invalid = validateCollection(body);
+    if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
+    const ref = doc(collection(publicFirestore, "collections"));
+    await setDoc(ref, { ...body, sortOrder: 0, createdAt: new Date().toISOString() });
+    return NextResponse.json({ id: ref.id }, { status: 201 });
+  } catch (error) { return apiErrorResponse(error, "Creating home collection"); }
 }
 
 function validateCollection(body: Omit<Collection, "id">) {

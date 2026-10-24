@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { doc, writeBatch } from "firebase/firestore/lite";
 import { publicFirestore } from "@/lib/firebase-public";
+import { apiErrorResponse } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as { ids?: unknown };
-  if (!Array.isArray(body.ids) || body.ids.some((id) => typeof id !== "string")) return NextResponse.json({ error: "A list of collection IDs is required." }, { status: 400 });
-  const batch = writeBatch(publicFirestore);
-  body.ids.forEach((id, index) => batch.set(doc(publicFirestore, "collections", id), { sortOrder: index, deleted: false, updatedAt: new Date().toISOString() }, { merge: true }));
-  await batch.commit();
-  return NextResponse.json({ saved: body.ids.length });
+  try {
+    const body = (await request.json()) as { ids?: unknown };
+    if (!Array.isArray(body.ids) || body.ids.some((id) => typeof id !== "string")) return NextResponse.json({ error: "A list of collection IDs is required." }, { status: 400 });
+    if (body.ids.length > 400) return NextResponse.json({ error: "You can reorder up to 400 collections at once." }, { status: 400 });
+    const batch = writeBatch(publicFirestore);
+    body.ids.forEach((id, index) => batch.set(doc(publicFirestore, "collections", id), { sortOrder: index, deleted: false, updatedAt: new Date().toISOString() }, { merge: true }));
+    await batch.commit();
+    return NextResponse.json({ saved: body.ids.length });
+  } catch (error) { return apiErrorResponse(error, "Reordering home collections"); }
 }
