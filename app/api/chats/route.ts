@@ -29,15 +29,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await authenticateRequest(request);
-  if (!user || user.isAdmin) return NextResponse.json({ error: "Customer sign-in is required." }, { status: 401 });
-  let body: { collectionId?: unknown; homeName?: unknown; price?: unknown; listingUrl?: unknown; customerName?: unknown; initialMessage?: unknown };
-  try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid chat request." }, { status: 400 }); }
-  if (typeof body.collectionId !== "string" || body.collectionId.length > 180 || typeof body.homeName !== "string" || body.homeName.length > 160) {
-    return NextResponse.json({ error: "A valid home collection is required." }, { status: 400 });
-  }
-
   try {
+    const user = await authenticateRequest(request);
+    if (!user || user.isAdmin) return NextResponse.json({ error: "Customer sign-in is required." }, { status: 401 });
+    let body: { collectionId?: unknown; homeName?: unknown; price?: unknown; listingUrl?: unknown; customerName?: unknown; initialMessage?: unknown };
+    try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid chat request." }, { status: 400 }); }
+    if (typeof body.collectionId !== "string" || body.collectionId.length > 180 || typeof body.homeName !== "string" || body.homeName.length > 160) {
+      return NextResponse.json({ error: "A valid home collection is required." }, { status: 400 });
+    }
     const db = getAdminFirestore();
     if (!db) return NextResponse.json({ error: "Chat service is not configured on the server." }, { status: 503 });
     const chatId = createHash("sha256").update(`${user.uid}:${body.collectionId}`).digest("hex");
@@ -73,6 +72,6 @@ export async function POST(request: Request) {
   } catch (error) {
     const detail = chatError(error);
     console.error("Could not start customer chat", detail);
-    return NextResponse.json({ error: `Chat service could not start a conversation (${detail.code}): ${detail.message}` }, { status: 503 });
+    return NextResponse.json({ error: `Chat service could not start a conversation (${detail.code}): ${detail.message}` }, { status: 500 });
   }
 }
