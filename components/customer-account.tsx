@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, updateProfile, type User } from "firebase/auth";
+import { createUserWithEmailAndPassword, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithRedirect, signOut, updateProfile, type User } from "firebase/auth";
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
 import { ArrowLeft, ArrowUpRight, Home as HouseIcon, Plus } from "@/components/icons";
 import { firebaseAuth } from "@/lib/firebase-auth-client";
@@ -15,9 +15,19 @@ type Chat = { id: string; uid: string; email: string; customerName: string; coll
 type ChatMessage = { id: string; uid: string; sender: "admin" | "customer"; text: string; createdAt: string | null };
 const ADMIN_EMAIL = "support@anthonymobilehomes.com";
 
+function googleSignInError(error: unknown) {
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+  if (code === "auth/unauthorized-domain") return "This website address is not authorized for Google sign-in. Add its domain under Firebase Authentication > Settings > Authorized domains.";
+  if (code === "auth/operation-not-allowed") return "Google sign-in is disabled. Enable the Google provider under Firebase Authentication > Sign-in method.";
+  if (code === "auth/network-request-failed") return "Google sign-in could not reach Firebase. Check your connection and try again.";
+  return error instanceof Error ? error.message : "Google sign-in failed. Please try again.";
+}
+
 export function CustomerAccount() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(firebaseAuth.currentUser);
+  const [authReady, setAuthReady] = useState(false);
+  const [redirectHandled, setRedirectHandled] = useState(false);
   const [collections, setCollections] = useState<Collection[]>(starterCollections);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -36,7 +46,7 @@ export function CustomerAccount() {
   const [paymentChannel, setPaymentChannel] = useState<"whatsapp" | "email">("whatsapp");
   const selectedChat = chats.find((chat) => chat.id === selectedId) || null;
 
-  useEffect(() => onAuthStateChanged(firebaseAuth, setUser), []);
+  useEffect(() => onAuthStateChanged(firebaseAuth, (nextUser) => { setUser(nextUser); setAuthReady(true); }), []);
   useEffect(() => {
     void fetch("/api/collections", { cache: "no-store" }).then((response) => response.ok ? response.json() : starterCollections).then((data: Collection[]) => setCollections(data)).catch(() => undefined);
     const params = new URLSearchParams(window.location.search);
@@ -59,6 +69,28 @@ export function CustomerAccount() {
     try { setChats(await api("/api/chats", { cache: "no-store" }) as Chat[]); }
     catch (error) { setNotice(error instanceof Error ? error.message : "Could not load conversations."); }
   }, [api]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getRedirectResult(firebaseAuth).then(async (result) => {
+      if (!result || cancelled) return;
+      if (result.user.email?.toLowerCase() === ADMIN_EMAIL) {
+        router.replace("/admin");
+        return;
+      }
+      setUser(result.user);
+      try {
+        await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: result.user.displayName || "" }) });
+      } catch (error) {
+        if (!cancelled) setNotice(error instanceof Error ? error.message : "Your Google account is signed in, but its customer profile could not be saved.");
+      }
+    }).catch((error) => {
+      if (!cancelled) setNotice(googleSignInError(error));
+    }).finally(() => {
+      if (!cancelled) setRedirectHandled(true);
+    });
+    return () => { cancelled = true; };
+  }, [api, router]);
 
   useEffect(() => {
     if (!user) { setChats([]); setMessages([]); setSelectedId(""); return; }
@@ -125,10 +157,8 @@ export function CustomerAccount() {
   async function googleSignIn() {
     setBusy(true); setNotice("");
     try {
-      const credential = await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
-      setUser(credential.user);
-      await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: credential.user.displayName || "" }) });
-    } catch (error) { setNotice(error instanceof Error ? error.message : "Google sign-in failed."); }
+      await signInWithRedirect(firebaseAuth, new GoogleAuthProvider());
+    } catch (error) { setNotice(googleSignInError(error)); }
     finally { setBusy(false); }
   }
 
@@ -167,6 +197,8 @@ export function CustomerAccount() {
   }
 
   const paymentLabel = useMemo(() => selectedChat?.downPayment != null ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(selectedChat.downPayment) : "", [selectedChat]);
+
+  if (!authReady || !redirectHandled) return <main className="account-page"><div className="account-auth-loading" role="status">Checking your sign-in...</div></main>;
 
   async function switchToCustomerAccount() {
     setNotice("");
