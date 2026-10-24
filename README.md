@@ -2,7 +2,7 @@
 
 A mobile home catalog with priced collections, room galleries, photo uploads, reviews, and an admin editor.
 
-## Local setup
+## Local setups
 
 1. Install dependencies with `npm install`.
 2. Copy `.env.example` to `.env.local`. The Firebase web configuration and Supabase publishable key are public client settings; use your own project values if needed.
