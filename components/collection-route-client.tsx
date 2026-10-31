@@ -22,7 +22,7 @@ export function CollectionRouteClient({ id }: { id: string }) {
   const collection = collections.find((item) => item.id === id);
   return <main className="anthony-site collection-detail-route">
     <ContactStrip />
-    <header className="site-header"><Link href="/" className="wordmark"><span className="brand-house"><HouseIcon size={18} /></span><span>ANTHONY <b>MOBILE HOMES</b></span></Link><nav className="desktop-nav"><Link href="/collections">Home collections</Link><a href="tel:+14702194472">Talk with our team</a><Link href="/account">My account</Link></nav><a className="header-cta" href="tel:+14702194472">Call (470) 219-4472 <ArrowUpRight size={15} /></a></header>
+    <header className="site-header"><Link href="/" className="wordmark"><span className="brand-house"><HouseIcon size={18} /></span><span>ANTHONY <b>MOBILE HOMES</b></span></Link><nav className="desktop-nav"><Link href="/collections">Home collections</Link><a href="tel:+17017139763">Talk with our team</a><Link href="/account">My account</Link></nav><a className="header-cta" href="tel:+17017139763">Call +1 (701) 713-9763 <ArrowUpRight size={15} /></a></header>
     {collection ? <CollectionDetail collection={collection} onBack={() => { window.location.href = "/collections"; }} /> : loaded ? <div className="catalog-loading"><p>We couldn?t find that home collection.</p><Link href="/collections">Browse all home collections</Link></div> : <div className="catalog-loading"><span className="catalog-loader" /><p>Opening the home collection?</p></div>}
     <SiteFooter />
   </main>;

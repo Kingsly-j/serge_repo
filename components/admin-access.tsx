@@ -1,10 +1,10 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { useCallback, useEffect, useState } from "react";
+import { getIdToken, onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
 import { AdminPanel } from "@/components/admin-panel";
 import { firebaseAuth } from "@/lib/firebase-auth-client";
-import { starterCollections, type Collection } from "@/lib/catalog";
+import { type Collection } from "@/lib/catalog";
 import { starterReviews, type CustomerReview } from "@/lib/reviews";
 
 const ADMIN_EMAIL = "support@anthonymobilehomes.com";
@@ -17,16 +17,10 @@ export function AdminAccess() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [collections, setCollections] = useState<Collection[]>(starterCollections);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [reviews, setReviews] = useState<CustomerReview[]>(starterReviews);
 
   useEffect(() => onAuthStateChanged(firebaseAuth, (nextUser) => { setUser(nextUser); setAuthReady(true); }), []);
-  useEffect(() => {
-    if (!authReady || window.location.pathname !== "/admin") return;
-    if (user) { setLoginOpen(false); setAdminOpen(true); }
-    else setLoginOpen(true);
-  }, [authReady, user]);
-
   useEffect(() => {
     let typed = "";
     let resetTimer: number | undefined;
@@ -52,16 +46,23 @@ export function AdminAccess() {
     };
   }, [user]);
 
-  async function refreshCatalog() {
+  const refreshCatalog = useCallback(async () => {
     try {
+      const token = firebaseAuth.currentUser ? await getIdToken(firebaseAuth.currentUser) : "";
       const [collectionsResponse, reviewsResponse] = await Promise.all([
-        fetch("/api/collections", { cache: "no-store" }),
+        fetch("/api/admin/collections", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }),
         fetch("/api/reviews", { cache: "no-store" }),
       ]);
       if (collectionsResponse.ok) setCollections(await collectionsResponse.json());
       if (reviewsResponse.ok) setReviews(await reviewsResponse.json());
     } catch { /* Keep the current catalog visible while offline. */ }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!authReady || window.location.pathname !== "/admin") return;
+    if (user) { setLoginOpen(false); setAdminOpen(true); void refreshCatalog(); }
+    else setLoginOpen(true);
+  }, [authReady, user, refreshCatalog]);
 
   async function login(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
