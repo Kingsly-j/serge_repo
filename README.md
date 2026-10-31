@@ -10,7 +10,7 @@ A mobile home catalog with priced collections, room galleries, photo uploads, re
 4. Apply `supabase/migrations/20261022000000_public_photos_bucket.sql` in the Supabase SQL Editor for the configured project.
 5. Run `npm run dev` and open [http://localhost:3000](http://localhost:3000).
 
-The app stores home collections and reviews in Firestore. Uploaded photos go to the public Supabase Storage bucket `photos`; their public URLs are stored with the Firestore collection or room document. Photos may also be entered by URL.
+The app stores home collections and reviews in Firestore. Uploaded photos go to the public Supabase Storage bucket `photo`; their public URLs are stored with the Firestore collection or room document. Photos may also be entered by URL.
 
 ## Firebase setup
 
@@ -26,7 +26,7 @@ The starter catalog and reviews are stored in Firestore. Admin collection and re
 
 ## Supabase setup
 
-In the Supabase Dashboard, open **SQL Editor**, paste the contents of `supabase/migrations/20261022000000_public_photos_bucket.sql`, and run it. This creates or updates a public `photos` bucket (10 MB per image, JPEG/PNG/WebP/GIF) and allows anonymous uploads and reads. Keep any Supabase secret or service-role key out of the app; the app uses only the publishable key.
+In the Supabase Dashboard, open **SQL Editor**, paste the contents of `supabase/migrations/20261022000000_public_photos_bucket.sql`, and run it. This creates or updates a public `photo` bucket (10 MB per image, JPEG/PNG/WebP/GIF) and allows anonymous uploads and reads. Keep any Supabase secret or service-role key out of the app; the app uses only the publishable key.
 
 ## Site behavior
 

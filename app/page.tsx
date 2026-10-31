@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, Home as HouseIcon, Menu, WhatsAppIcon, X } from "@/components/icons";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, Home as HouseIcon, Menu, X } from "@/components/icons";
 import { starterCollections, type Collection } from "@/lib/catalog";
 import { CollectionDetail } from "@/components/collection-detail";
 import { ReviewsSection } from "@/components/reviews-section";
 import { starterReviews, type CustomerReview } from "@/lib/reviews";
 import { SiteFooter } from "@/components/site-footer";
+import { ContactStrip } from "@/components/contact-strip";
 
 const heroSlides = [
   { image: "https://s7d9.scene7.com/is/image/championhomes/Utah%20main%20image", eyebrow: "Manufactured homes made for living", title: "Room to live.", accent: "Space to grow.", note: "Explore homes built around your life" },
@@ -85,7 +86,7 @@ export default function Home() {
 
   return (
     <main className="anthony-site">
-      <div className="announcement">NEW &amp; PRE-OWNED HOMES <span>•</span> FINANCING OPTIONS <span>•</span> HERE TO HELP</div>
+      <ContactStrip />
       <header className="site-header">
         <a href="#home" className="wordmark" onClick={() => setSelected(null)}><span className="brand-house"><HouseIcon size={18} /></span><span>ANTHONY <b>MOBILE HOMES</b></span></a>
         <nav className="desktop-nav"><Link href="/collections">Explore homes</Link><a href="#process">How it works</a><a href="#about">About us</a><Link href="/account">My account</Link></nav>
@@ -133,7 +134,6 @@ export default function Home() {
       </>}
 
       <SiteFooter />
-      <a className="whatsapp-float" href="https://wa.me/17017139763?text=Hello%20Anthony%20Mobile%20Homes%2C%20I%27m%20interested%20in%20your%20homes." target="_blank" rel="noreferrer" aria-label="Inquire on WhatsApp at +1 701 713 9763"><WhatsAppIcon/><span>WhatsApp inquiry</span></a>
     </main>
   );
 }

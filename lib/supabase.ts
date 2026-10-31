@@ -4,7 +4,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export const supabase = url && publishableKey ? createClient(url, publishableKey) : null;
-export const PHOTOS_BUCKET = "photos";
+export const PHOTOS_BUCKET = "photo";
 
 export async function uploadPhoto(file: File) {
   if (!supabase) throw new Error("Supabase environment variables are not configured.");

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AdminAccess } from "@/components/admin-access";
 import { SiteTrafficTracker } from "@/components/site-traffic-tracker";
+import { SiteChatAssistant } from "@/components/site-chat-assistant";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://anthonymobilehomes.com";
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
-      <body className="min-h-full flex flex-col">{children}<AdminAccess /><Suspense fallback={null}><SiteTrafficTracker /></Suspense></body>
+      <body className="min-h-full flex flex-col">{children}<AdminAccess /><Suspense fallback={null}><SiteChatAssistant /></Suspense><Suspense fallback={null}><SiteTrafficTracker /></Suspense></body>
     </html>
   );
 }

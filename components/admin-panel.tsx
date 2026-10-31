@@ -44,6 +44,9 @@ export function AdminPanel({ onClose, onSaved, onSignOut, collections, reviews }
   const [adminMessages, setAdminMessages] = useState<AdminChatMessage[]>([]);
   const [adminMessage, setAdminMessage] = useState("");
   const [downPaymentDraft, setDownPaymentDraft] = useState("");
+  const [paymentMethodsDraft, setPaymentMethodsDraft] = useState("");
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
+  const [settingsNotice, setSettingsNotice] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
   const selectedAdminChat = adminChats.find((chat) => chat.id === selectedChatId) || null;
@@ -64,6 +67,41 @@ export function AdminPanel({ onClose, onSaved, onSignOut, collections, reviews }
     if (!response.ok) throw new Error(typeof result?.error === "string" ? result.error : `Request to ${path} failed (HTTP ${response.status}).`);
     return result;
   }, []);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const updateComposerOffset = () => {
+      const isMobile = window.matchMedia("(max-width: 760px)").matches;
+      const keyboardInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      const keyboardOpen = keyboardInset > 100;
+      document.documentElement.style.setProperty("--admin-chat-composer-bottom", `${isMobile ? (keyboardOpen ? keyboardInset : 56) : 0}px`);
+    };
+    updateComposerOffset();
+    viewport.addEventListener("resize", updateComposerOffset);
+    viewport.addEventListener("scroll", updateComposerOffset);
+    window.addEventListener("resize", updateComposerOffset);
+    window.addEventListener("orientationchange", updateComposerOffset);
+    return () => {
+      viewport.removeEventListener("resize", updateComposerOffset);
+      viewport.removeEventListener("scroll", updateComposerOffset);
+      window.removeEventListener("resize", updateComposerOffset);
+      window.removeEventListener("orientationchange", updateComposerOffset);
+      document.documentElement.style.removeProperty("--admin-chat-composer-bottom");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activePage !== "settings") return;
+    let cancelled = false;
+    setPaymentMethodsLoading(true);
+    setSettingsNotice("");
+    void adminFetch("/api/settings/payment-methods", { cache: "no-store" })
+      .then((result: { methods?: string[] }) => { if (!cancelled) setPaymentMethodsDraft(Array.isArray(result.methods) ? result.methods.join("\n") : ""); })
+      .catch((error) => { if (!cancelled) setSettingsNotice(error instanceof Error ? error.message : "Could not load payment methods."); })
+      .finally(() => { if (!cancelled) setPaymentMethodsLoading(false); });
+    return () => { cancelled = true; };
+  }, [activePage, adminFetch]);
 
   useEffect(() => {
     if (activePage !== "chats") return;
@@ -110,6 +148,19 @@ export function AdminPanel({ onClose, onSaved, onSignOut, collections, reviews }
     setBusy(true); setChatError("");
     try { await adminFetch(`/api/chats/${selectedChatId}/messages`, { method: "PATCH", body: JSON.stringify({ downPayment: downPaymentDraft }) }); setAdminChats((current) => current.map((chat) => chat.id === selectedChatId ? { ...chat, downPayment: Number(downPaymentDraft) } : chat)); setChatError("Down payment saved for this customer."); }
     catch (error) { setChatError(error instanceof Error ? error.message : "Could not save the down payment."); }
+    finally { setBusy(false); }
+  }
+
+  async function savePaymentMethods(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setSettingsNotice("");
+    const methods = [...new Set(paymentMethodsDraft.split(/\r?\n/).map((method) => method.trim()).filter(Boolean))];
+    try {
+      const result = await adminFetch("/api/settings/payment-methods", { method: "PUT", body: JSON.stringify({ methods }) }) as { methods: string[] };
+      setPaymentMethodsDraft(result.methods.join("\n"));
+      setSettingsNotice("Payment methods saved.");
+    } catch (error) { setSettingsNotice(error instanceof Error ? error.message : "Could not save payment methods."); }
     finally { setBusy(false); }
   }
 
@@ -290,7 +341,7 @@ export function AdminPanel({ onClose, onSaved, onSignOut, collections, reviews }
           {activePage === "chats" && <section className="admin-page-section admin-chat-page"><div className="admin-dashboard-toolbar admin-page-toolbar"><div><p className="eyebrow"><span className="eyebrow-line" /> PRIVATE CUSTOMER MESSAGES</p><h2>Customer chats</h2><p>Reply to signed-in customers and set an individual down payment in each conversation.</p></div><span className="admin-chat-live"><i/> Updates automatically</span></div>
             {chatError && <p className="admin-notice" role="status">{chatError}</p>}
             <div className="admin-chat-workspace"><aside className="admin-chat-list">{adminChats.length ? adminChats.map((chat) => <button type="button" key={chat.id} className={`admin-chat-list-item ${selectedChatId === chat.id ? "is-active" : ""}`} onClick={() => { setSelectedChatId(chat.id); setChatError(""); }}><span className="admin-chat-avatar">{(chat.customerName || chat.email || "C").charAt(0).toUpperCase()}</span><span className="admin-chat-list-copy"><strong>{chat.customerName || chat.email}</strong><small>{chat.homeName}</small><p>{chat.lastMessage}</p></span>{chat.lastSender === "customer" && <i className="admin-chat-unread"/>}</button>) : <div className="admin-chat-list-empty"><span>✉</span><strong>No conversations yet</strong><p>Customer chats will appear here after they sign in and ask about a home.</p></div>}</aside>
-              <section className="admin-chat-thread">{selectedAdminChat ? <><header className="admin-chat-thread-header"><div><span>CUSTOMER CONVERSATION</span><h3>{selectedAdminChat.customerName || selectedAdminChat.email}</h3><p>{selectedAdminChat.email} ? {selectedAdminChat.homeName} ? {selectedAdminChat.price}</p></div><a href={selectedAdminChat.listingUrl || `/collections/${selectedAdminChat.collectionId}`} target="_blank" rel="noreferrer">View home ?</a></header><form className="admin-downpayment-form" onSubmit={saveDownPayment}><div><span>DOWN PAYMENT OFFER</span><small>Only this customer can see the amount.</small></div><label><span className="admin-currency">$</span><input type="number" min="0" max="1000000" step="1" value={downPaymentDraft} onChange={(event) => setDownPaymentDraft(event.target.value)} placeholder="0" aria-label="Customer down payment" required/></label><button type="submit" disabled={busy}>Set amount</button></form><div className="admin-chat-messages" aria-live="polite">{adminMessages.map((item) => <article key={item.id} className={`admin-chat-message ${item.sender === "admin" ? "is-admin" : "is-customer"}`}><span>{item.sender === "admin" ? "YOU ? ANTHONY MOBILE HOMES" : selectedAdminChat.customerName.toUpperCase()}</span><p>{item.text}</p><time>{item.createdAt ? new Date(item.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Sending?"}</time></article>)}</div><form className="admin-chat-composer" onSubmit={sendAdminChatMessage}><textarea rows={2} maxLength={2000} value={adminMessage} onChange={(event) => setAdminMessage(event.target.value)} placeholder={`Reply to ${selectedAdminChat.customerName || "this customer"}?`} aria-label="Write a reply"/><button type="submit" disabled={busy || !adminMessage.trim()}>Send reply <ArrowUpRight size={15}/></button></form></> : <div className="admin-chat-no-selection"><span>?</span><h3>Every good conversation starts somewhere.</h3><p>Select a customer chat to reply and set their down payment.</p></div>}</section>
+              <section className="admin-chat-thread">{selectedAdminChat ? <><header className="admin-chat-thread-header"><div><span>CUSTOMER CONVERSATION</span><h3>{selectedAdminChat.customerName || selectedAdminChat.email}</h3><p>{selectedAdminChat.email} ? {selectedAdminChat.homeName} ? {selectedAdminChat.price}</p></div><a href={selectedAdminChat.listingUrl || `/collections/${selectedAdminChat.collectionId}`} target="_blank" rel="noreferrer">View home ?</a></header><form className="admin-downpayment-form" onSubmit={saveDownPayment}><div><span>DOWN PAYMENT OFFER</span><small>Only this customer can see the amount.</small></div><label><span className="admin-currency">$</span><input type="number" min="0" max="1000000" step="1" value={downPaymentDraft} onChange={(event) => setDownPaymentDraft(event.target.value)} placeholder="0" aria-label="Customer down payment" required/></label><button type="submit" disabled={busy}>Set amount</button></form><div className="admin-chat-messages" aria-live="polite">{adminMessages.map((item) => <article key={item.id} className={`admin-chat-message ${item.sender === "admin" ? "is-admin" : "is-customer"}`}><span>{item.sender === "admin" ? "YOU ? ANTHONY MOBILE HOMES" : selectedAdminChat.customerName.toUpperCase()}</span><p>{item.text}</p><time>{item.createdAt ? new Date(item.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Sending?"}</time></article>)}</div><form className="admin-chat-composer" onSubmit={sendAdminChatMessage}><textarea rows={2} maxLength={2000} value={adminMessage} onChange={(event) => setAdminMessage(event.target.value)} placeholder={`Reply to ${selectedAdminChat.customerName || "this customer"}?`} aria-label="Write a reply" inputMode="text" enterKeyHint="send"/><button type="submit" disabled={busy || !adminMessage.trim()}>Send reply <ArrowUpRight size={15}/></button></form></> : <div className="admin-chat-no-selection"><span>?</span><h3>Every good conversation starts somewhere.</h3><p>Select a customer chat to reply and set their down payment.</p></div>}</section>
             </div>
           </section>}
           {activePage === "traffic" && <section className="admin-page-section"><div className="admin-dashboard-toolbar admin-page-toolbar"><div><p className="eyebrow"><span className="eyebrow-line" /> STOREFRONT ANALYTICS</p><h2>Site traffic</h2><p>Visitor and page view activity. Location may use approximate browser time zone unless edge location is available.</p></div><div className="traffic-range-tabs" role="group" aria-label="Traffic date range">{([["24h", "24 hours"], ["7d", "7 days"], ["30d", "30 days"]] as const).map(([range, label]) => <button type="button" key={range} className={trafficRange === range ? "is-active" : ""} onClick={() => setTrafficRange(range)}>{label}</button>)}</div></div>
@@ -301,7 +352,7 @@ export function AdminPanel({ onClose, onSaved, onSignOut, collections, reviews }
               <p className="traffic-privacy-note">Traffic uses an anonymous browser ID. Precise location and IP addresses are not stored. City and country are shown only when supplied by the hosting network; other entries use the visitor browser time zone.</p>{trafficData.capped && <p className="traffic-privacy-note">This report reached the 10,000 event limit. The totals may be incomplete.</p>}
             </>}
           </section>}
-          {activePage === "settings" && <section className="admin-page-section"><div className="admin-page-intro"><p className="eyebrow"><span className="eyebrow-line" /> ACCOUNT & STORE</p><h2>Settings</h2><p>Review your admin access and the services connected to your storefront.</p></div><article className="admin-settings-card"><span className="admin-settings-icon">?</span><div><small>ADMIN ACCOUNT</small><h3>Anthony Mobile Homes</h3><p>Signed in as <strong>support@anthonymobilehomes.com</strong></p></div></article><article className="admin-settings-card"><span className="admin-settings-icon">?</span><div><small>CONTENT STORAGE</small><h3>Firebase & Supabase</h3><p>Collection and review details are managed in Firebase. Uploaded photos are stored in the Supabase photos bucket.</p></div></article><button type="button" className="admin-settings-signout" onClick={onSignOut}>Sign out of admin <span>?</span></button></section>}
+          {activePage === "settings" && <section className="admin-page-section"><div className="admin-page-intro"><p className="eyebrow"><span className="eyebrow-line" /> ACCOUNT & STORE</p><h2>Settings</h2><p>Manage the payment methods customers can choose when discussing a down payment.</p></div><form className="admin-payment-methods-form" onSubmit={savePaymentMethods}><label htmlFor="admin-payment-methods">Payment methods <small>Enter one method per line. Customers will see these options before choosing WhatsApp or email.</small></label><textarea id="admin-payment-methods" rows={6} maxLength={2000} value={paymentMethodsDraft} onChange={(event) => setPaymentMethodsDraft(event.target.value)} placeholder={"Add methods your team accepts, one per line.\nFor example: Financing"} disabled={paymentMethodsLoading}/>{settingsNotice && <p role="status" className="admin-payment-methods-notice">{settingsNotice}</p>}<button type="submit" className="admin-primary-action" disabled={busy || paymentMethodsLoading}>{paymentMethodsLoading ? "Loading…" : busy ? "Saving…" : "Save payment methods"}</button></form><article className="admin-settings-card"><span className="admin-settings-icon">?</span><div><small>ADMIN ACCOUNT</small><h3>Anthony Mobile Homes</h3><p>Signed in as <strong>support@anthonymobilehomes.com</strong></p></div></article><article className="admin-settings-card"><span className="admin-settings-icon">?</span><div><small>CONTENT STORAGE</small><h3>Firebase & Supabase</h3><p>Collection and review details are managed in Firebase. Uploaded photos are stored in the Supabase <code>photo</code> bucket.</p></div></article><button type="button" className="admin-settings-signout" onClick={onSignOut}>Sign out of admin <span>?</span></button></section>}
         </main>
       </div>
       <nav className="admin-dashboard-mobile-nav" aria-label="Admin pages">{([ ["overview", "Home", "O"], ["homes", "Collections", "H"], ["reviews", "Reviews", "R"], ["chats", "Chats", "C"], ["traffic", "Traffic", "T"], ["settings", "Settings", "S"] ] as const).map(([page, label, icon]) => <button type="button" key={page} className={activePage === page ? "is-active" : ""} aria-current={activePage === page ? "page" : undefined} onClick={() => setActivePage(page)}><span>{icon}</span>{label}</button>)}</nav>    </section>

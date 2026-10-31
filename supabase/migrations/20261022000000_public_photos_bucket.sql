@@ -3,8 +3,8 @@
 -- client upload files. Filenames are UUID-prefixed by the application.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
-  'photos',
-  'photos',
+  'photo',
+  'photo',
   true,
   10485760,
   array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -21,13 +21,13 @@ begin
     where schemaname = 'storage' and tablename = 'objects'
       and policyname = 'Public can read Anthony home photos'
   ) then
-    execute 'create policy "Public can read Anthony home photos" on storage.objects for select to anon, authenticated using (bucket_id = ''photos'')';
+    execute 'create policy "Public can read Anthony home photos" on storage.objects for select to anon, authenticated using (bucket_id = ''photo'')';
   end if;
   if not exists (
     select 1 from pg_policies
     where schemaname = 'storage' and tablename = 'objects'
       and policyname = 'Public can upload Anthony home photos'
   ) then
-    execute 'create policy "Public can upload Anthony home photos" on storage.objects for insert to anon, authenticated with check (bucket_id = ''photos'')';
+    execute 'create policy "Public can upload Anthony home photos" on storage.objects for insert to anon, authenticated with check (bucket_id = ''photo'')';
   end if;
 end $$;
