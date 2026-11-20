@@ -39,6 +39,9 @@ export function CustomerAccount() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [phoneDraft, setPhoneDraft] = useState("");
+  const [phonePromptOpen, setPhonePromptOpen] = useState(false);
   const [notificationOn, setNotificationOn] = useState(false);
   const [showPaymentChoices, setShowPaymentChoices] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
@@ -62,17 +65,6 @@ export function CustomerAccount() {
     router.replace(collectionId ? `/account?collectionId=${encodeURIComponent(collectionId)}` : "/account");
   }, [requestedCollectionId, router]);
 
-  useEffect(() => onAuthStateChanged(firebaseAuth, (nextUser) => {
-    setUser(nextUser);
-    setAuthReady(true);
-    if (nextUser) {
-      // This also handles redirect sign-in completing after the initial
-      // callback timeout; always leave the signed-out form once Firebase has
-      // confirmed an authenticated session.
-      setRedirectHandled(true);
-      goToCustomerChat();
-    }
-  }), [goToCustomerChat]);
   useEffect(() => {
     void fetch("/api/collections", { cache: "no-store" }).then((response) => response.ok ? response.json() : starterCollections).then((data: Collection[]) => setCollections(data)).catch(() => undefined);
     void fetch("/api/settings/payment-methods", { cache: "no-store" }).then((response) => response.ok ? response.json() : { methods: [] }).then((data: { methods?: unknown }) => setPaymentMethods(Array.isArray(data.methods) ? data.methods.filter((item): item is string => typeof item === "string") : [])).catch(() => setPaymentMethods([]));
@@ -100,6 +92,27 @@ export function CustomerAccount() {
     return result;
   }, []);
 
+  const ensurePhone = useCallback(async (current: User) => {
+    if (current.email?.toLowerCase() === ADMIN_EMAIL) return;
+    try {
+      const profile = await api("/api/customers/profile", { method: "GET", cache: "no-store" }) as { phone?: string };
+      if (profile.phone?.trim()) { setProfilePhone(profile.phone.trim()); setPhonePromptOpen(false); }
+      else setPhonePromptOpen(true);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not check your contact details.");
+    }
+  }, [api]);
+
+  useEffect(() => onAuthStateChanged(firebaseAuth, (nextUser) => {
+    setUser(nextUser);
+    setAuthReady(true);
+    if (nextUser) {
+      setRedirectHandled(true);
+      void ensurePhone(nextUser);
+      goToCustomerChat();
+    }
+  }), [ensurePhone, goToCustomerChat]);
+
   const loadChats = useCallback(async () => {
     try { setChats(await api("/api/chats", { cache: "no-store" }) as Chat[]); }
     catch (error) { setNotice(error instanceof Error ? error.message : "Could not load conversations."); }
@@ -118,6 +131,7 @@ export function CustomerAccount() {
         return;
       }
       setUser(returnedUser);
+      await ensurePhone(returnedUser);
       if (result) {
         try {
           await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: returnedUser.displayName || "" }) });
@@ -154,7 +168,7 @@ export function CustomerAccount() {
       }
     });
     return () => { cancelled = true; };
-  }, [api, goToCustomerChat, router]);
+  }, [api, ensurePhone, goToCustomerChat, router]);
 
   useEffect(() => {
     if (!user) { setChats([]); setMessages([]); setSelectedId(""); return; }
@@ -220,6 +234,7 @@ export function CustomerAccount() {
       } else credential = await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
       setUser(credential.user); setPassword("");
       await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: credential.user.displayName || name.trim() }) });
+      await ensurePhone(credential.user);
       goToCustomerChat();
     } catch (error) { setNotice(error instanceof Error ? error.message : "Sign-in failed. Check your details and try again."); }
     finally { setBusy(false); }
@@ -239,6 +254,7 @@ export function CustomerAccount() {
         }
         setUser(credential.user);
         await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: credential.user.displayName || "" }) });
+        await ensurePhone(credential.user);
         setRedirectHandled(true);
         goToCustomerChat();
       } catch (popupError) {
@@ -334,6 +350,19 @@ export function CustomerAccount() {
 
   if (!authReady || !redirectHandled) return <main className="account-page"><div className="account-auth-loading" role="status">Checking your sign-in...</div></main>;
 
+  async function savePhone(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (phoneDraft.trim().replace(/\D/g, "").length < 7) return;
+    setBusy(true);
+    try {
+      await api("/api/customers/profile", { method: "POST", body: JSON.stringify({ name: user?.displayName || "", phone: phoneDraft.trim() }) });
+      setProfilePhone(phoneDraft.trim());
+      setPhonePromptOpen(false);
+      setNotice("Your contact number has been saved.");
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Could not save your phone number."); }
+    finally { setBusy(false); }
+  }
+
   async function switchToCustomerAccount() {
     setNotice("");
     setSelectedId("");
@@ -351,6 +380,7 @@ export function CustomerAccount() {
       <aside className="customer-chat-sidebar"><div className="customer-account-heading"><div><p className="eyebrow"><span className="eyebrow-line"/> YOUR ACCOUNT</p><h1>Hello{user.displayName ? ", " + user.displayName.split(" ")[0] : ""}.</h1><small>{user.email}</small></div><button type="button" aria-label="Sign out" title="Sign out" onClick={() => void signOut(firebaseAuth)}>Sign out</button></div><button type="button" className="notification-action" disabled={busy || notificationOn} onClick={() => void enableNotifications()}>{notificationOn ? "Notifications enabled" : "Enable message notifications"}</button><div className="customer-conversation-heading"><h2>Conversations</h2><span>{chats.length}</span></div><div className="customer-conversation-list">{chats.map((chat) => <button type="button" key={chat.id} className={"customer-conversation " + (selectedId === chat.id ? "is-active" : "")} onClick={() => { setSelectedId(chat.id); setShowPaymentChoices(false); setSelectedPaymentMethod(""); router.replace("/account?chat=" + chat.id); }}><span className="conversation-home-icon"><HouseIcon size={16}/></span><span className="conversation-copy"><strong>{chat.homeName}</strong><small>{chat.lastMessage}</small></span><ArrowUpRight size={14}/></button>)}{!chats.length && <div className="conversation-empty"><span>H</span><strong>Your home search starts here</strong><p>Choose a collection and start a private conversation with our team.</p><Link href="/collections">Browse homes <ArrowUpRight size={14}/></Link></div>}</div></aside>
       <section className="customer-chat-main">{selectedChat ? <><header className="customer-chat-header"><button className="chat-back-mobile" type="button" onClick={() => { setSelectedId(""); router.replace("/account"); }}><ArrowLeft size={16}/> Conversations</button><div className="chat-home-cover" style={{ backgroundImage: `url("${collections.find((home) => home.id === selectedChat.collectionId)?.imageUrl || ""}")` }}/><div className="chat-home-title"><span>HOME ENQUIRY</span><h2>{selectedChat.homeName}</h2><small>{selectedChat.price}</small></div><Link href={"/collections/" + selectedChat.collectionId} className="chat-listing-link">View home <ArrowUpRight size={14}/></Link></header><div className="chat-intro-note"><span>H</span><p>Your conversation with the Anthony Mobile Homes team. We’ll reply here and notify your signed-in devices when we do.</p></div><div className="chat-message-list" aria-live="polite">{messages.map((item) => <article className={"chat-bubble " + (item.sender === "customer" ? "is-mine" : "is-admin")} key={item.id}><span>{item.sender === "admin" ? "ANTHONY MOBILE HOMES" : "YOU"}</span><p>{item.text}</p><time>{item.createdAt ? new Date(item.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Sending..."}</time></article>)}</div>{selectedChat.downPayment != null && selectedChat.downPayment > 0 && <div className="downpayment-card"><div><span>DOWN PAYMENT SET BY YOUR HOME SPECIALIST</span><strong>{paymentLabel}</strong><small>Choose a payment method, then text or call us to discuss your property payment.</small></div><div className="downpayment-actions"><button type="button" className="downpayment-button" onClick={() => { setShowPaymentChoices((open) => !open); setSelectedPaymentMethod(""); }}>Choose payment method <ArrowUpRight size={15}/></button>{showPaymentChoices && <div className="downpayment-choices"><strong>Select a payment method</strong>{paymentMethods.length ? paymentMethods.map((method) => <button type="button" key={method} className={selectedPaymentMethod === method ? "is-selected" : ""} aria-pressed={selectedPaymentMethod === method} onClick={() => setSelectedPaymentMethod(method)}>{method}</button>) : <p>No payment methods are available yet. Please ask our team in the chat.</p>}{selectedPaymentMethod && <div className="downpayment-contact-options"><span>Contact us about {selectedPaymentMethod}</span><button type="button" onClick={() => void startPayment("text")}>Text about payment <ArrowUpRight size={14}/></button><button type="button" onClick={() => void startPayment("call")}>Call about payment <ArrowUpRight size={14}/></button></div>}</div>}</div></div>}<form className="customer-message-form" onSubmit={sendMessage}><label htmlFor="customer-chat-message">Message our home specialist</label><div className="customer-message-compose"><textarea id="customer-chat-message" value={message} onChange={(event) => setMessage(event.target.value)} rows={2} maxLength={2000} placeholder="Type your message here…"/><button type="submit" disabled={busy || !message.trim()}><span>{busy ? "Sending…" : "Send message"}</span><ArrowUpRight size={16}/></button></div></form></> : <div className="chat-welcome-state"><span className="chat-welcome-mark">A</span><p className="eyebrow">PERSONAL HOME GUIDANCE</p><h2>A good home search<br/><em>starts with a conversation.</em></h2><p>Choose a home you’re interested in and message our team here. Our home specialists will reply in this private chat.</p><button type="button" className="chat-start-button" disabled={busy} onClick={() => void startGeneralConversation()}>{busy ? "Starting conversation…" : "Start a conversation"} <ArrowUpRight size={17}/></button><Link href="/collections" className="chat-browse-link">Or browse home collections first</Link></div>}{notice && <div className="account-toast" role="status">{notice}<button type="button" onClick={() => setNotice("")}>X</button></div>}</section>
     </section>}
+    {phonePromptOpen && user && <div className="account-phone-overlay"><form className="account-phone-dialog" onSubmit={savePhone} role="dialog" aria-modal="true" aria-labelledby="phone-prompt-title"><p className="eyebrow"><span className="eyebrow-line"/> STAY IN TOUCH</p><h2 id="phone-prompt-title">How can our team reach you?</h2><p>Enter a phone number so our home specialists can contact you about your search. A number is required to continue.</p><label>Phone number<input type="tel" autoComplete="tel" inputMode="tel" required value={phoneDraft} onChange={(event) => setPhoneDraft(event.target.value)} placeholder="+1 (701) 555-0123" maxLength={32}/></label><button className="account-primary-button" type="submit" disabled={busy || phoneDraft.trim().replace(/\D/g, "").length < 7}>{busy ? "Saving..." : "Save and continue"}</button></form></div>}
     {!user && <SiteFooter/>}
   </main>;
 }

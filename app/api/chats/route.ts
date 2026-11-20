@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const snapshot = await db.collection("chats").orderBy("updatedAt", "desc").limit(250).get();
     const chats = snapshot.docs
       .filter((entry) => user.isAdmin || entry.data().uid === user.uid)
-      .map((entry) => ({ id: entry.id, ...entry.data(), updatedAt: entry.data().updatedAt?.toDate?.().toISOString() || null }));
+      .map((entry) => ({ id: entry.id, ...entry.data(), customerPhone: entry.data().customerPhone || "", updatedAt: entry.data().updatedAt?.toDate?.().toISOString() || null }));
     return NextResponse.json(chats);
   } catch (error) {
     const detail = chatError(error);
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
     if (!db) return NextResponse.json({ error: "Chat service is not configured on the server." }, { status: 503 });
     const chatId = createHash("sha256").update(`${user.uid}:${body.collectionId}`).digest("hex");
     const chatRef = db.collection("chats").doc(chatId);
+    const customer = await db.collection("customers").doc(user.uid).get();
     const messageRef = chatRef.collection("messages").doc();
     const openingMessage = typeof body.initialMessage === "string"
       ? body.initialMessage.trim().slice(0, 2000)
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
         uid: user.uid,
         email: user.email,
         customerName: customerName || user.email.split("@")[0],
+        customerPhone: customer.data()?.phone || "",
         collectionId: body.collectionId,
         homeName: body.homeName,
         price: typeof body.price === "string" ? body.price.slice(0, 80) : "Contact for pricing",
